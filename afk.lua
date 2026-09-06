@@ -1,4 +1,4 @@
---// STEAL AN EGG - SERVER BROWSER & AUTO HOP [PRO UI]
+--// STEAL AN EGG - SERVER FINDER [PRO ADAPTED HUB]
 --// PlaceId: 107778070777162
 
 local Players = game:GetService("Players")
@@ -129,6 +129,7 @@ List.BorderSizePixel = 0
 List.ScrollBarThickness = 4
 List.ScrollBarImageColor3 = Color3.fromRGB(60, 60, 75)
 List.CanvasSize = UDim2.new()
+List.AutomaticCanvasSize = Enum.AutomaticSize.Y
 List.Parent = Container
 
 Instance.new("UICorner", List).CornerRadius = UDim.new(0, 8)
@@ -136,10 +137,12 @@ Instance.new("UICorner", List).CornerRadius = UDim.new(0, 8)
 local Layout = Instance.new("UIListLayout")
 Layout.Padding = UDim.new(0, 6)
 Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+Layout.SortOrder = Enum.SortOrder.LayoutOrder
 Layout.Parent = List
 
 local Padding = Instance.new("UIPadding")
 Padding.PaddingTop = UDim.new(0, 8)
+Padding.PaddingBottom = UDim.new(0, 8)
 Padding.Parent = List
 
 -- Floating Open Button (Lilitaw kapag naka-minimize o close para madaling mabuksan ulit sa mobile)
@@ -175,12 +178,23 @@ OpenBtn.MouseButton1Click:Connect(function()
     OpenBtn.Visible = false
 end)
 
---// Make server row
-local function AddServer(server)
+--// Clear list
+local function ClearList()
+    for _, child in ipairs(List:GetChildren()) do
+        if child:IsA("Frame") then
+            child:Destroy()
+        end
+    end
+end
+
+--// Make server row (Adopted sort formatting)
+local function AddServer(server, layoutOrder)
     local Row = Instance.new("Frame")
+    Row.Name = "ServerEntry"
     Row.Size = UDim2.new(1, -14, 0, 48)
     Row.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
     Row.BorderSizePixel = 0
+    Row.LayoutOrder = layoutOrder
     Row.Parent = List
 
     Instance.new("UICorner", Row).CornerRadius = UDim.new(0, 8)
@@ -214,22 +228,38 @@ local function AddServer(server)
     end)
 end
 
---// Clear list
-local function ClearList()
-    for _, child in ipairs(List:GetChildren()) do
-        if child:IsA("Frame") then
-            child:Destroy()
-        end
+local function PopulateList(servers)
+    ClearList()
+    
+    if not servers or #servers == 0 then
+        local emptyLabel = Instance.new("TextLabel")
+        emptyLabel.Name = "ServerEntry"
+        emptyLabel.Size = UDim2.new(1, -14, 0, 48)
+        emptyLabel.BackgroundTransparency = 1
+        emptyLabel.Text = "No 0-1 player servers found."
+        emptyLabel.TextColor3 = Color3.fromRGB(150, 150, 160)
+        emptyLabel.TextSize = 14
+        emptyLabel.Font = Enum.Font.Gotham
+        emptyLabel.Parent = List
+        return
+    end
+
+    -- Sort gamit ang logic ni Claude (mula sa pinakamababang player count)
+    table.sort(servers, function(a, b)
+        return (tonumber(a.playing) or 0) < (tonumber(b.playing) or 0)
+    end)
+
+    for i, server in ipairs(servers) do
+        AddServer(server, i)
     end
 end
 
---// Scan servers
+--// Scan servers (Optimized API loop)
 local function ScanServers()
-    ClearList()
     Status.Text = "Status: Scanning servers (0-1 players)..."
 
     local cursor = nil
-    local found = 0
+    local collectedServers = {}
 
     repeat
         local url = "https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
@@ -242,16 +272,13 @@ local function ScanServers()
         end)
 
         if not success then
-            Status.Text = "Status: Failed to scan. Retrying..."
             task.wait(2)
             continue
         end
 
         for _, server in ipairs(result.data or {}) do
             if server.id ~= game.JobId and server.playing <= 1 and server.playing < server.maxPlayers then
-                found += 1
-                AddServer(server)
-                Status.Text = "Status: Found " .. found .. " server(s)"
+                table.insert(collectedServers, server)
             end
         end
 
@@ -259,15 +286,16 @@ local function ScanServers()
         task.wait(0.1)
     until not cursor
 
-    List.CanvasSize = UDim2.new(0, 0, 0, Layout.AbsoluteContentSize.Y + 15)
+    PopulateList(collectedServers)
 
-    if found == 0 then
+    local foundCount = #collectedServers
+    if foundCount == 0 then
         Status.Text = "Status: No 0-1 player servers found"
     else
-        Status.Text = "Status: Found " .. found .. " server(s)"
+        Status.Text = "Status: Found " .. foundCount .. " server(s)"
     end
 
-    return found
+    return collectedServers
 end
 
 --// Refresh
@@ -277,7 +305,7 @@ Refresh.MouseButton1Click:Connect(function()
     Refresh.Active = true
 end)
 
---// Auto Hop
+--// Auto Hop Loop
 local Auto = false
 
 AutoHop.MouseButton1Click:Connect(function()
@@ -289,7 +317,7 @@ AutoHop.MouseButton1Click:Connect(function()
 
         task.spawn(function()
             while Auto do
-                Status.Text = "Status: Looking for empty server..."
+                Status.Text = "Status: Auto-hopping for empty server..."
                 local cursor = nil
                 local joined = false
 
@@ -322,7 +350,7 @@ AutoHop.MouseButton1Click:Connect(function()
                 until not cursor
 
                 if not joined then
-                    Status.Text = "Status: No server found. Rescanning..."
+                    Status.Text = "Status: Rescanning servers..."
                     task.wait(3)
                 end
             end

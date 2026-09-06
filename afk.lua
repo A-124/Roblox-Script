@@ -1,5 +1,5 @@
 -- ==========================================
--- STEAL AN EGG: ULTIMATE SAFE HUB (V3)
+-- STEAL AN EGG: ULTIMATE CLOVER/SPEED HUB V4
 -- ==========================================
 
 local Players = game:GetService("Players")
@@ -9,6 +9,7 @@ local TeleportService = game:GetService("TeleportService")
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local LocalPlayer = Players.LocalPlayer
 local WebhookURL = "https://discord.com/api/webhooks/1546132377942757508/hKr0zsMTzZ-jsVPV1Yqz42bZVL8AXgBZiX_PSXjnckCbC2COhet3FIyLQ45PN6fY18oB"
@@ -37,10 +38,10 @@ local function sendDiscordEmbed(title, description, color)
     if not alertsEnabled then return end
     local payload = {
         embeds = {{
-            title = "🛡️ [Alt Safe Hub] " .. title,
+            title = "🛡️ [Steal an Egg Hub] " .. title,
             description = description,
             color = color,
-            footer = { text = "Ultimate Cloud AFK • " .. os.date("%I:%M %p") }
+            footer = { text = "Cloud AFK Sync • " .. os.date("%I:%M %p") }
         }}
     }
     pcall(function()
@@ -53,7 +54,7 @@ local function sendDiscordEmbed(title, description, color)
     end)
 end
 
--- Ultimate Performance Mode (Super Smooth for Redfinger)
+-- Ultimate Performance Mode
 local function applyPerformanceMode(state)
     if state then
         pcall(function()
@@ -72,12 +73,12 @@ local function applyPerformanceMode(state)
     end
 end
 
-if CoreGui:FindFirstChild("UltimateStealEggHub") then
-    CoreGui.UltimateStealEggHub:Destroy()
+if CoreGui:FindFirstChild("UltimateStealEggHubV4") then
+    CoreGui.UltimateStealEggHubV4:Destroy()
 end
 
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "UltimateStealEggHub"
+ScreenGui.Name = "UltimateStealEggHubV4"
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame", ScreenGui)
@@ -90,13 +91,13 @@ MainFrame.Draggable = true
 local Title = Instance.new("TextLabel", MainFrame)
 Title.Size = UDim2.new(1, -35, 0, 35)
 Title.BackgroundColor3 = Color3.fromRGB(28, 28, 35)
-Title.Text = " 🥚 Steal an Egg [Ultimate]"
+Title.Text = " 🥚 Steal an Egg [V4 Fix]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 13
 Title.TextXAlignment = Enum.TextXAlignment.Left
 
--- Minimize / Open-Close Button
+-- Minimize Button
 local MinBtn = Instance.new("TextButton", MainFrame)
 MinBtn.Size = UDim2.new(0, 35, 0, 35)
 MinBtn.Position = UDim2.new(1, -35, 0, 0)
@@ -121,7 +122,6 @@ StatsLabel.TextSize = 10
 StatsLabel.TextXAlignment = Enum.TextXAlignment.Left
 StatsLabel.TextYAlignment = Enum.TextYAlignment.Top
 
--- Buttons inside Container
 local StealBtn = Instance.new("TextButton", Container)
 StealBtn.Size = UDim2.new(1, -20, 0, 30)
 StealBtn.Position = UDim2.new(0, 10, 0, 58)
@@ -187,10 +187,10 @@ PerfBtn.MouseButton1Click:Connect(function()
 end)
 
 TestBtn.MouseButton1Click:Connect(function()
-    sendDiscordEmbed("Ultimate Test", "Maayos na gumagana ang UI, Minimize feature, at Performance boost sa alt account mo!", 3447003)
+    sendDiscordEmbed("Test V4", "Gumagana ang V4 patch at nakakonekta sa GitHub raw link mo!", 3447003)
 end)
 
--- Auto Rejoin kung ma-kick
+-- Error Handler / Auto Rejoin
 game:GetService("CoreGui").RobloxPromptGui.promptOverlay.ChildAdded:Connect(function(child)
     if child.Name == "ErrorPrompt" then
         sendDiscordEmbed("Na-disconnect", "Nag-aauto-reconnect ang alt account para tuloy ang farm.", 15158332)
@@ -199,12 +199,11 @@ game:GetService("CoreGui").RobloxPromptGui.promptOverlay.ChildAdded:Connect(func
     end
 end)
 
--- Apply initial performance mode
 applyPerformanceMode(true)
 
--- Main Working Loop para sa Auto-Steal at Auto-Hatch (Safe & Updated Method)
+-- Improved Steal & Hatch Loop batay sa __OBJECTS / Areas structure
 task.spawn(function()
-    sendDiscordEmbed("Nagsimula na ang Ultimate Hub", "Handa na ang alt account para sa 24/7 cloud AFK.", 3066993)
+    sendDiscordEmbed("V4 Hub Started", "Naka-deploy na ang fixed loop para sa Steal an Egg.", 3066993)
     
     while true do
         local elapsed = math.floor(tick() - startTime)
@@ -212,15 +211,28 @@ task.spawn(function()
         local minutes = math.floor((elapsed % 3600) / 60)
         local fps = math.floor(1 / RunService.RenderStepped:Wait())
         
-        StatsLabel.Text = string.format(" Uptime: %02d:%02d | FPS: %d\n Status: Active & Optimized", hours, minutes, fps)
+        StatsLabel.Text = string.format(" Uptime: %02d:%02d | FPS: %d\n Status: V4 Scanning Areas...", hours, minutes, fps)
         
-        -- Working Auto-Steal Logic (Hanapin ang mga Egg items o ProximityPrompts sa laro)
+        -- Pag-target sa __OBJECTS folder structure na nakita sa console
         if autoStealActive and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
             pcall(function()
-                for _, obj in pairs(Workspace:GetDescendants()) do
-                    -- Sinusubukan nitong galawin o i-trigger ang mga itlog / prompts sa paligid
-                    if obj:IsA("ProximityPrompt") and (obj.Parent.Name:lower():find("egg") or obj.Parent.Name:lower():find("steal")) then
-                        fireproximityprompt(obj)
+                local objectsFolder = Workspace:FindFirstChild("__OBJECTS")
+                if objectsFolder then
+                    local areas = objectsFolder:FindFirstChild("Areas")
+                    if areas then
+                        for _, area in pairs(areas:GetChildren()) do
+                            -- Hanapin ang mga ProximityPrompt o Egg triggers sa bawat Area (Desert, Prehistoric, atbp.)
+                            for _, descendant in pairs(area:GetDescendants()) do
+                                if descendant:IsA("ProximityPrompt") then
+                                    fireproximityprompt(descendant)
+                                elseif descendant:IsA("BasePart") and (descendant.Name:lower():find("egg") or descendant.Name:lower():find("steal")) then
+                                    -- Direct touch interest kung sakaling walang prompt
+                                    firetouchinterest(LocalPlayer.Character.HumanoidRootPart, descendant, 0)
+                                    task.wait(0.05)
+                                    firetouchinterest(LocalPlayer.Character.HumanoidRootPart, descendant, 1)
+                                end
+                            end
+                        end
                     end
                 end
             end)

@@ -1,5 +1,5 @@
 -- ==========================================
--- DISCORD REMOTE LOGGER (STEAL AN EGG)
+-- DISCORD REMOTE LOGGER (STEAL AN EGG
 -- ==========================================
 
 local CoreGui = game:GetService("CoreGui")

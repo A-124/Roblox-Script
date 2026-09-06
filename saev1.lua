@@ -1,5 +1,5 @@
 --!nonstrict
---[[
+--[[h
     SyncHub Lite Pro - UI & Custom Features for Steal an Egg
 --]]
 

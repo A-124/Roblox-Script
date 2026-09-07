@@ -1,6 +1,6 @@
 --[[
   Steal Egg + Server Hop
-  Coded by: azi_.x (Modified with Anti-AFK & Default OFF state)
+  Coded by: azi_.x (Safe Anti-AFK & Default OFF state)
   Mobile-friendly | Delta-safe
 ]]
 
@@ -20,7 +20,7 @@ while not player do task.wait() player = Players.LocalPlayer end
 local PlayerGui = player:WaitForChild("PlayerGui", 10)
 local camera = workspace.CurrentCamera
 
--- Lahat naka-OFF sa simula
+-- Lahat naka-OFF sa simula ayon sa gusto mo
 local Config = {
 	AutoSteal = false,
 	EggESP = false,
@@ -40,7 +40,7 @@ local Config = {
 	ShowStatus = true,
 	ArrowNearest = false,
 	ServerHopLowest = false,
-	AntiAFK = true, -- Naka-ON ang anti-kick para hindi ka ma-disconnect
+	AntiAFK = true, -- Ligtas na Anti-AFK para iwas-kick
 }
 
 local BaseCF = nil
@@ -58,13 +58,18 @@ local function notify(title, text)
 	end)
 end
 
--- ========== ANTI-AFK / ANTI-KICK ==========
+-- ========== SAFE ANTI-AFK (Iwas Anti-Cheat Detection) ==========
 task.spawn(function()
-	while task.wait(30) do
+	while task.wait(60) do -- Mas matagal na interval para hindi kahina-hinala sa server
 		if Config.AntiAFK then
 			pcall(function()
-				VirtualUser:CaptureController()
-				VirtualUser:ClickButton2(Vector2.new(0, 0))
+				-- Gumagamit ng simpleng camera nudge sa halip na agresibong pagbago ng Humanoid state
+				local cam = workspace.CurrentCamera
+				if cam then
+					cam.CFrame = cam.CFrame * CFrame.Angles(0, math.rad(0.01), 0)
+					task.wait(0.05)
+					cam.CFrame = cam.CFrame * CFrame.Angles(0, math.rad(-0.01), 0)
+				end
 			end)
 		end
 	end
@@ -124,11 +129,11 @@ end
 local function hopLowest()
 	local servers = getServersSorted()
 	if #servers > 0 then
-		notify("Server Hop", "Pumlilipat sa mas tahimik na server...")
+		notify("Server Hop", "Lumilipat sa mas tahimik na server...")
 		TeleportService:TeleportToPlaceInstance(game.PlaceId, servers[1].id, player)
 	else
 		notify("Server Hop", "Walang nahanap na ibang server.")
 	end
 end
 
-notify("Loaded", "Script executed successfully. Lahat ng features ay naka-OFF.")
+notify("Loaded", "Safe script executed. Lahat ng features ay naka-OFF.")

@@ -1,5 +1,5 @@
 -- ============================================
--- 🥚 LEE HUB - STEAL AN EGG (IMPROVED VERSION)
+-- 🥚 LEE HUB - STEAL AN EGG (MAX IMPROVED & SAFE)
 -- Coded by: Lee
 -- ============================================
 
@@ -9,32 +9,35 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local CoreGui = game:GetService("CoreGui")
-local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local fastPromptEnabled = false
-local menuVisible = false -- Naka-off muna sa simula, bubukas lang pagpindot ng 'L' o ng icon
+local menuVisible = false -- Naka-false muna sa simula para malinis
 local defaultHoldDurations = {}
 
--- [[ ANTI-CHEAT BYPASS / ANTI-KICK SAFETY ]]
--- Binabawasan ang mga nakakahinahong abrupt state changes para hindi ma-flag ng client-side anti-cheat
+-- [[ MAX ANTI-DETECT & ANTI-KICK BYPASS ]]
+-- Tinatakpan ang mga function checks para hindi madaliang ma-flag ng client-side anti-cheat
 pcall(function()
-	local mt = getrawmetatable(game)
-	setreadonly(mt, false)
-	local oldIndex = mt.__index
-	mt.__index = newcclosure(function(self, k)
-		if k == "WalkSpeed" or k == "JumpPower" then
-			return 16 -- Ligtas na fallback value para hindi madetect ang speed modifications
+	if getgenv then
+		local mt = getrawmetatable(game)
+		if mt then
+			setreadonly(mt, false)
+			local oldIndex = mt.__index
+			mt.__index = newcclosure(function(self, k)
+				if k == "WalkSpeed" or k == "JumpPower" then
+					return 16
+				end
+				return oldIndex(self, k)
+			end)
+			setreadonly(mt, true)
 		end
-		return oldIndex(self, k)
-	end)
-	setreadonly(mt, true)
+	end
 end)
 
--- Safe Anti-Kick Loop (Pinapanatiling active ang session nang walang nakakahinahong remote spam)
+-- Tahimik na Anti-AFK na hindi nag ti-trigger ng suspicious movement reports
 task.spawn(function()
-	while task.wait(45) do
+	while task.wait(60) do
 		pcall(function()
 			local vu = game:GetService("VirtualUser")
 			if vu then
@@ -45,9 +48,9 @@ task.spawn(function()
 	end
 end)
 
--- [[ UI SETUP (MODERN & SLEEK) ]]
+-- [[ UI SETUP ]]
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "LeeHubStealAnEgg"
+screenGui.Name = "LeeHubMaxStealAnEgg"
 screenGui.ResetOnSpawn = false
 if syn and syn.protect_gui then
 	syn.protect_gui(screenGui)
@@ -58,7 +61,7 @@ else
 	screenGui.Parent = CoreGui
 end
 
--- Floating Round Icon ("L" button sa gitna/gilid na pwedeng i-drag)
+-- Floating Round Icon ("L" button na nasa gitna/gilid)
 local toggleMenuBtn = Instance.new("TextButton")
 toggleMenuBtn.Name = "LeeToggleBtn"
 toggleMenuBtn.Size = UDim2.new(0, 52, 0, 52)
@@ -81,14 +84,14 @@ toggleStroke.Color = Color3.fromRGB(255, 215, 0)
 toggleStroke.Thickness = 2
 toggleStroke.Parent = toggleMenuBtn
 
--- Main Frame (Collapsible with Tabs)
+-- Main Frame (Naka-center at may Tabs)
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
 mainFrame.Size = UDim2.new(0, 360, 0, 260)
 mainFrame.Position = UDim2.new(0.5, -180, 0.5, -130)
 mainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
 mainFrame.BorderSizePixel = 0
-mainFrame.Visible = false
+mainFrame.Visible = false -- Sisiguraduhing kontrolado ng toggle
 mainFrame.Active = true
 mainFrame.Draggable = true
 mainFrame.Parent = screenGui
@@ -188,7 +191,6 @@ local function createTab(name, isDefault)
 	tabPages[name] = page
 
 	tabBtn.MouseButton1Click:Connect(function()
-	 abgesch = false -- dummy scope fix
 		for tName, tBtn in pairs(tabs) do
 			tBtn.BackgroundColor3 = Color3.fromRGB(28, 28, 38)
 			tBtn.TextColor3 = Color3.fromRGB(160, 160, 180)
@@ -269,7 +271,7 @@ local akCorner = Instance.new("UICorner")
 akCorner.CornerRadius = UDim.new(0, 6)
 akCorner.Parent = antiKickLabel
 
--- [[ TAB 3: NEXT UPDATE (REQUESTED) ]]
+-- [[ TAB 3: NEXT UPDATE ]]
 local updateInfo = Instance.new("TextLabel")
 updateInfo.Size = UDim2.new(1, 0, 0, 80)
 updateInfo.BackgroundTransparency = 1
@@ -289,7 +291,7 @@ end
 
 toggleMenuBtn.MouseButton1Click:Connect(toggleMenu)
 
--- Keybind toggle ('L' key o kaya 'Insert')
+-- Keybind toggle ('L' key o kaya 'Insert') para magbukas/magsara
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if not gameProcessed then
 		if input.KeyCode == Enum.KeyCode.L or input.KeyCode == Enum.KeyCode.Insert then

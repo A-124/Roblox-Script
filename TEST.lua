@@ -1,99 +1,161 @@
 -- ============================================
--- 🥚 LEE HUB - STEAL AN EGG (MAX IMPROVED & SAFE)
--- Coded by: Lee
+-- 🥚 LEE HUB - CLEAN VERSION
+-- Steal an Egg
+-- Coded by Lee
 -- ============================================
 
-if not game:IsLoaded() then pcall(function() game.Loaded:Wait() end) end
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
+-- ============================================
+-- SERVICES
+-- ============================================
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local CoreGui = game:GetService("CoreGui")
-local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
-local fastPromptEnabled = false
-local menuVisible = false -- Naka-false muna sa simula para malinis
-local defaultHoldDurations = {}
 
--- [[ MAX ANTI-DETECT & ANTI-KICK BYPASS ]]
--- Tinatakpan ang mga function checks para hindi madaliang ma-flag ng client-side anti-cheat
+-- ============================================
+-- CLEANUP PREVIOUS VERSION
+-- ============================================
+
 pcall(function()
-	if getgenv then
-		local mt = getrawmetatable(game)
-		if mt then
-			setreadonly(mt, false)
-			local oldIndex = mt.__index
-			mt.__index = newcclosure(function(self, k)
-				if k == "WalkSpeed" or k == "JumpPower" then
-					return 16
-				end
-				return oldIndex(self, k)
-			end)
-			setreadonly(mt, true)
-		end
-	end
+    local oldGui = CoreGui:FindFirstChild("LeeHubClean")
+    if oldGui then
+        oldGui:Destroy()
+    end
 end)
 
--- Tahimik na Anti-AFK na hindi nag ti-trigger ng suspicious movement reports
-task.spawn(function()
-	while task.wait(60) do
-		pcall(function()
-			local vu = game:GetService("VirtualUser")
-			if vu then
-				vu:CaptureController()
-				vu:ClickButton2(Vector2.new())
-			end
-		end)
-	end
+pcall(function()
+    local oldGui = game:GetService("Players").LocalPlayer
+        :WaitForChild("PlayerGui")
+        :FindFirstChild("LeeHubClean")
+
+    if oldGui then
+        oldGui:Destroy()
+    end
 end)
 
--- [[ UI SETUP ]]
+-- ============================================
+-- STATE
+-- ============================================
+
+local fastPromptEnabled = false
+local originalHoldDurations = {}
+local connections = {}
+
+-- ============================================
+-- GUI PARENT
+-- ============================================
+
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "LeeHubMaxStealAnEgg"
+screenGui.Name = "LeeHubClean"
 screenGui.ResetOnSpawn = false
-if syn and syn.protect_gui then
-	syn.protect_gui(screenGui)
-	screenGui.Parent = CoreGui
-elseif gethui then
-	screenGui.Parent = gethui()
-else
-	screenGui.Parent = CoreGui
+screenGui.IgnoreGuiInset = true
+
+pcall(function()
+    if gethui then
+        screenGui.Parent = gethui()
+        return
+    end
+end)
+
+if not screenGui.Parent then
+    screenGui.Parent = CoreGui
 end
 
--- Floating Round Icon ("L" button na nasa gitna/gilid)
-local toggleMenuBtn = Instance.new("TextButton")
-toggleMenuBtn.Name = "LeeToggleBtn"
-toggleMenuBtn.Size = UDim2.new(0, 52, 0, 52)
-toggleMenuBtn.Position = UDim2.new(0, 25, 0.45, 0)
-toggleMenuBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-toggleMenuBtn.TextColor3 = Color3.fromRGB(255, 215, 0)
-toggleMenuBtn.Text = "L"
-toggleMenuBtn.TextSize = 24
-toggleMenuBtn.Font = Enum.Font.GothamBold
-toggleMenuBtn.Active = true
-toggleMenuBtn.Draggable = true
-toggleMenuBtn.Parent = screenGui
+-- ============================================
+-- HELPERS
+-- ============================================
+
+local function connect(signal, callback)
+    local connection = signal:Connect(callback)
+    table.insert(connections, connection)
+    return connection
+end
+
+local function setButtonState(button, enabled, text)
+    if enabled then
+        button.Text = text .. ": ON"
+        button.BackgroundColor3 = Color3.fromRGB(45, 170, 75)
+    else
+        button.Text = text .. ": OFF"
+        button.BackgroundColor3 = Color3.fromRGB(170, 55, 55)
+    end
+end
+
+local function restorePrompts()
+    for prompt, originalDuration in pairs(originalHoldDurations) do
+        if prompt and prompt.Parent then
+            pcall(function()
+                prompt.HoldDuration = originalDuration
+            end)
+        end
+    end
+
+    table.clear(originalHoldDurations)
+end
+
+local function setFastPrompt(enabled)
+    fastPromptEnabled = enabled
+
+    if enabled then
+        for _, object in ipairs(workspace:GetDescendants()) do
+            if object:IsA("ProximityPrompt") then
+                if originalHoldDurations[object] == nil then
+                    originalHoldDurations[object] = object.HoldDuration
+                end
+
+                pcall(function()
+                    object.HoldDuration = 0
+                end)
+            end
+        end
+    else
+        restorePrompts()
+    end
+end
+
+-- ============================================
+-- FLOATING BUTTON
+-- ============================================
+
+local toggleButton = Instance.new("TextButton")
+toggleButton.Name = "ToggleButton"
+toggleButton.Size = UDim2.fromOffset(54, 54)
+toggleButton.Position = UDim2.new(0, 20, 0.5, -27)
+toggleButton.BackgroundColor3 = Color3.fromRGB(20, 20, 27)
+toggleButton.TextColor3 = Color3.fromRGB(255, 215, 0)
+toggleButton.Text = "L"
+toggleButton.TextSize = 24
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.AutoButtonColor = true
+toggleButton.Parent = screenGui
 
 local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(1, 0)
-toggleCorner.Parent = toggleMenuBtn
+toggleCorner.Parent = toggleButton
 
 local toggleStroke = Instance.new("UIStroke")
 toggleStroke.Color = Color3.fromRGB(255, 215, 0)
 toggleStroke.Thickness = 2
-toggleStroke.Parent = toggleMenuBtn
+toggleStroke.Parent = toggleButton
 
--- Main Frame (Naka-center at may Tabs)
+-- ============================================
+-- MAIN FRAME
+-- ============================================
+
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 360, 0, 260)
-mainFrame.Position = UDim2.new(0.5, -180, 0.5, -130)
+mainFrame.Size = UDim2.fromOffset(370, 285)
+mainFrame.Position = UDim2.new(0.5, -185, 0.5, -142)
 mainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
 mainFrame.BorderSizePixel = 0
-mainFrame.Visible = false -- Sisiguraduhing kontrolado ng toggle
 mainFrame.Active = true
-mainFrame.Draggable = true
 mainFrame.Parent = screenGui
 
 local mainCorner = Instance.new("UICorner")
@@ -101,201 +163,331 @@ mainCorner.CornerRadius = UDim.new(0, 12)
 mainCorner.Parent = mainFrame
 
 local mainStroke = Instance.new("UIStroke")
-mainStroke.Color = Color3.fromRGB(50, 50, 70)
+mainStroke.Color = Color3.fromRGB(55, 55, 75)
 mainStroke.Thickness = 1.5
 mainStroke.Parent = mainFrame
 
--- Title Bar with Credit ("Coded by Lee")
+-- ============================================
+-- TITLE BAR
+-- ============================================
+
 local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 40)
-titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+titleBar.Size = UDim2.new(1, 0, 0, 44)
+titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 34)
 titleBar.BorderSizePixel = 0
 titleBar.Parent = mainFrame
 
-local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 12)
-titleCorner.Parent = titleBar
-
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(0.6, 0, 1, 0)
-titleLabel.Position = UDim2.new(0.04, 0, 0, 0)
+titleLabel.Size = UDim2.new(0.65, 0, 1, 0)
+titleLabel.Position = UDim2.fromOffset(14, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
 titleLabel.Text = "LEE HUB | Steal an Egg"
+titleLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
 titleLabel.TextSize = 14
 titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Parent = titleBar
 
 local creditLabel = Instance.new("TextLabel")
-creditLabel.Size = UDim2.new(0.35, 0, 1, 0)
-creditLabel.Position = UDim2.new(0.6, 0, 0, 0)
+creditLabel.Size = UDim2.new(0.3, -10, 1, 0)
+creditLabel.Position = UDim2.new(0.7, 0, 0, 0)
 creditLabel.BackgroundTransparency = 1
-creditLabel.TextColor3 = Color3.fromRGB(150, 150, 170)
 creditLabel.Text = "Coded by Lee"
-creditLabel.TextSize = 11
+creditLabel.TextColor3 = Color3.fromRGB(145, 145, 165)
+creditLabel.TextSize = 10
 creditLabel.Font = Enum.Font.GothamItalic
 creditLabel.TextXAlignment = Enum.TextXAlignment.Right
 creditLabel.Parent = titleBar
 
--- [[ TABS SYSTEM ]]
-local tabButtonContainer = Instance.new("Frame")
-tabButtonContainer.Size = UDim2.new(1, -20, 0, 32)
-tabButtonContainer.Position = UDim2.new(0, 10, 0, 48)
-tabButtonContainer.BackgroundTransparency = 1
-tabButtonContainer.Parent = mainFrame
+-- ============================================
+-- TAB BAR
+-- ============================================
 
-local tabListLayout = Instance.new("UIListLayout")
-tabListLayout.FillDirection = Enum.FillDirection.Horizontal
-tabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-tabListLayout.Padding = UDim.new(0, 8)
-tabListLayout.Parent = tabButtonContainer
+local tabBar = Instance.new("Frame")
+tabBar.Size = UDim2.new(1, -20, 0, 36)
+tabBar.Position = UDim2.fromOffset(10, 52)
+tabBar.BackgroundTransparency = 1
+tabBar.Parent = mainFrame
 
-local contentContainer = Instance.new("Frame")
-contentContainer.Size = UDim2.new(1, -20, 1, -95)
-contentContainer.Position = UDim2.new(0, 10, 0, 85)
-contentContainer.BackgroundTransparency = 1
-contentContainer.Parent = mainFrame
+local tabLayout = Instance.new("UIListLayout")
+tabLayout.FillDirection = Enum.FillDirection.Horizontal
+tabLayout.Padding = UDim.new(0, 6)
+tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+tabLayout.Parent = tabBar
+
+-- ============================================
+-- CONTENT
+-- ============================================
+
+local content = Instance.new("Frame")
+content.Size = UDim2.new(1, -20, 1, -100)
+content.Position = UDim2.fromOffset(10, 94)
+content.BackgroundTransparency = 1
+content.Parent = mainFrame
 
 local tabs = {}
-local tabPages = {}
+local pages = {}
 
-local function createTab(name, isDefault)
-	local tabBtn = Instance.new("TextButton")
-	tabBtn.Size = UDim2.new(0, 105, 1, 0)
-	tabBtn.BackgroundColor3 = isDefault and Color3.fromRGB(45, 45, 65) or Color3.fromRGB(28, 28, 38)
-	tabBtn.TextColor3 = isDefault and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(160, 160, 180)
-	tabBtn.Text = name
-	tabBtn.TextSize = 12
-	tabBtn.Font = Enum.Font.GothamBold
-	tabBtn.Parent = tabButtonContainer
+local function createTab(name, order)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.fromOffset(108, 34)
+    button.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    button.TextColor3 = Color3.fromRGB(160, 160, 180)
+    button.Text = name
+    button.TextSize = 11
+    button.Font = Enum.Font.GothamBold
+    button.LayoutOrder = order
+    button.Parent = tabBar
 
-	local btnCorner = Instance.new("UICorner")
-	btnCorner.CornerRadius = UDim.new(0, 6)
-	btnCorner.Parent = tabBtn
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 7)
+    corner.Parent = button
 
-	local page = Instance.new("ScrollingFrame")
-	page.Size = UDim2.new(1, 0, 1, 0)
-	page.BackgroundTransparency = 1
-	page.BorderSizePixel = 0
-	page.ScrollBarThickness = 3
-	page.Visible = isDefault
-	page.Parent = contentContainer
+    local page = Instance.new("ScrollingFrame")
+    page.Size = UDim2.fromScale(1, 1)
+    page.BackgroundTransparency = 1
+    page.BorderSizePixel = 0
+    page.ScrollBarThickness = 3
+    page.CanvasSize = UDim2.new(0, 0, 0, 0)
+    page.Visible = false
+    page.Parent = content
 
-	local pageLayout = Instance.new("UIListLayout")
-	pageLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	pageLayout.Padding = UDim.new(0, 8)
-	pageLayout.Parent = page
+    local layout = Instance.new("UIListLayout")
+    layout.Padding = UDim.new(0, 8)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Parent = page
 
-	tabs[name] = tabBtn
-	tabPages[name] = page
+    connect(layout:GetPropertyChangedSignal("AbsoluteContentSize"), function()
+        page.CanvasSize = UDim2.new(
+            0,
+            0,
+            0,
+            layout.AbsoluteContentSize.Y + 10
+        )
+    end)
 
-	tabBtn.MouseButton1Click:Connect(function()
-		for tName, tBtn in pairs(tabs) do
-			tBtn.BackgroundColor3 = Color3.fromRGB(28, 28, 38)
-			tBtn.TextColor3 = Color3.fromRGB(160, 160, 180)
-			tabPages[tName].Visible = false
-		end
-		tabBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 65)
-		tabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-		page.Visible = true
-	end)
+    tabs[name] = button
+    pages[name] = page
 
-	return page
+    connect(button.MouseButton1Click, function()
+        for tabName, tabButton in pairs(tabs) do
+            tabButton.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+            tabButton.TextColor3 = Color3.fromRGB(160, 160, 180)
+            pages[tabName].Visible = false
+        end
+
+        button.BackgroundColor3 = Color3.fromRGB(48, 48, 68)
+        button.TextColor3 = Color3.fromRGB(255, 255, 255)
+        page.Visible = true
+    end)
+
+    return page
 end
 
--- Create Tabs
-local mainTabPage = createTab("Main", true)
-local miscTabPage = createTab("Misc", false)
-local nextUpdatePage = createTab("Next Update", false)
+local mainPage = createTab("Main", 1)
+local miscPage = createTab("Misc", 2)
+local updatePage = createTab("Next Update", 3)
 
--- [[ TAB 1: MAIN FEATURES ]]
-local fastPromptBtn = Instance.new("TextButton")
-fastPromptBtn.Size = UDim2.new(1, 0, 0, 40)
-fastPromptBtn.BackgroundColor3 = Color3.fromRGB(180, 45, 45)
-fastPromptBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-fastPromptBtn.Text = "Fast Prompt: OFF"
-fastPromptBtn.TextSize = 13
-fastPromptBtn.Font = Enum.Font.GothamBold
-fastPromptBtn.Parent = mainTabPage
+-- ============================================
+-- MAIN PAGE
+-- ============================================
+
+local fastPromptButton = Instance.new("TextButton")
+fastPromptButton.Size = UDim2.new(1, 0, 0, 44)
+fastPromptButton.BackgroundColor3 = Color3.fromRGB(170, 55, 55)
+fastPromptButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+fastPromptButton.Text = "Fast Prompt: OFF"
+fastPromptButton.TextSize = 13
+fastPromptButton.Font = Enum.Font.GothamBold
+fastPromptButton.Parent = mainPage
 
 local fpCorner = Instance.new("UICorner")
-fpCorner.CornerRadius = UDim.new(0, 6)
-fpCorner.Parent = fastPromptBtn
+fpCorner.CornerRadius = UDim.new(0, 7)
+fpCorner.Parent = fastPromptButton
 
-fastPromptBtn.MouseButton1Click:Connect(function()
-	fastPromptEnabled = not fastPromptEnabled
-	if fastPromptEnabled then
-		fastPromptBtn.Text = "Fast Prompt: ON"
-		fastPromptBtn.BackgroundColor3 = Color3.fromRGB(45, 180, 45)
-		for _, obj in pairs(workspace:GetDescendants()) do
-			if obj:IsA("ProximityPrompt") then
-				if not defaultHoldDurations[obj] then
-					defaultHoldDurations[obj] = obj.HoldDuration
-				end
-				obj.HoldDuration = 0
-			end
-		end
-	else
-		fastPromptBtn.Text = "Fast Prompt: OFF"
-		fastPromptBtn.BackgroundColor3 = Color3.fromRGB(180, 45, 45)
-		for obj, originalDuration in pairs(defaultHoldDurations) do
-			if obj and obj.Parent then
-				obj.HoldDuration = originalDuration
-			end
-		end
-		defaultHoldDurations = {}
-	end
+connect(fastPromptButton.MouseButton1Click, function()
+    setFastPrompt(not fastPromptEnabled)
+    setButtonState(
+        fastPromptButton,
+        fastPromptEnabled,
+        "Fast Prompt"
+    )
 end)
 
-ProximityPromptService.PromptAdded:Connect(function(prompt)
-	if fastPromptEnabled then
-		if not defaultHoldDurations[prompt] then
-			defaultHoldDurations[prompt] = prompt.HoldDuration
-		end
-		prompt.HoldDuration = 0
-	end
+local description = Instance.new("TextLabel")
+description.Size = UDim2.new(1, 0, 0, 55)
+description.BackgroundTransparency = 1
+description.Text = "Sets ProximityPrompt HoldDuration to 0 locally.\nServer-side validation may still apply."
+description.TextColor3 = Color3.fromRGB(175, 175, 190)
+description.TextSize = 11
+description.Font = Enum.Font.Gotham
+description.TextWrapped = true
+description.TextXAlignment = Enum.TextXAlignment.Left
+description.Parent = mainPage
+
+-- ============================================
+-- NEW PROMPT HANDLER
+-- ============================================
+
+connect(ProximityPromptService.PromptAdded, function(prompt)
+    if not fastPromptEnabled then
+        return
+    end
+
+    if originalHoldDurations[prompt] == nil then
+        originalHoldDurations[prompt] = prompt.HoldDuration
+    end
+
+    pcall(function()
+        prompt.HoldDuration = 0
+    end)
 end)
 
--- [[ TAB 2: MISC FEATURES ]]
-local antiKickLabel = Instance.new("TextLabel")
-antiKickLabel.Size = UDim2.new(1, 0, 0, 35)
-antiKickLabel.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-antiKickLabel.TextColor3 = Color3.fromRGB(50, 220, 50)
-antiKickLabel.Text = "🛡️ Anti-Kick / Bypass: ACTIVE"
-antiKickLabel.TextSize = 12
-antiKickLabel.Font = Enum.Font.GothamBold
-antiKickLabel.Parent = miscTabPage
+-- ============================================
+-- MISC PAGE
+-- ============================================
 
-local akCorner = Instance.new("UICorner")
-akCorner.CornerRadius = UDim.new(0, 6)
-akCorner.Parent = antiKickLabel
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, 0, 0, 55)
+statusLabel.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+statusLabel.TextColor3 = Color3.fromRGB(100, 220, 120)
+statusLabel.Text = "● LEE HUB is running\nNo anti-kick / anti-detect bypass active."
+statusLabel.TextSize = 11
+statusLabel.Font = Enum.Font.GothamBold
+statusLabel.TextWrapped = true
+statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+statusLabel.Parent = miscPage
 
--- [[ TAB 3: NEXT UPDATE ]]
-local updateInfo = Instance.new("TextLabel")
-updateInfo.Size = UDim2.new(1, 0, 0, 80)
-updateInfo.BackgroundTransparency = 1
-updateInfo.TextColor3 = Color3.fromRGB(200, 200, 220)
-updateInfo.Text = "🚀 Coming Soon in Next Update:\n• Auto Farm Best Eggs\n• Advanced Egg ESP & Rarity Colors\n• Custom WalkSpeed & Infinite Jump"
-updateInfo.TextSize = 12
-updateInfo.Font = Enum.Font.Gotham
-updateInfo.TextWrapped = true
-updateInfo.TextXAlignment = Enum.TextXAlignment.Left
-updateInfo.Parent = nextUpdatePage
+local statusCorner = Instance.new("UICorner")
+statusCorner.CornerRadius = UDim.new(0, 7)
+statusCorner.Parent = statusLabel
 
--- [[ TOGGLE VISIBILITY FUNCTIONS ]]
-local function toggleMenu()
-	menuVisible = not menuVisible
-	mainFrame.Visible = menuVisible
+-- ============================================
+-- NEXT UPDATE PAGE
+-- ============================================
+
+local updateLabel = Instance.new("TextLabel")
+updateLabel.Size = UDim2.new(1, 0, 0, 100)
+updateLabel.BackgroundTransparency = 1
+updateLabel.TextColor3 = Color3.fromRGB(200, 200, 215)
+updateLabel.Text =
+    "🚀 Planned Features\n\n" ..
+    "• Egg information panel\n" ..
+    "• Rarity display\n" ..
+    "• Better mobile layout\n" ..
+    "• Additional quality-of-life tools"
+updateLabel.TextSize = 12
+updateLabel.Font = Enum.Font.Gotham
+updateLabel.TextWrapped = true
+updateLabel.TextXAlignment = Enum.TextXAlignment.Left
+updateLabel.TextYAlignment = Enum.TextYAlignment.Top
+updateLabel.Parent = updatePage
+
+-- ============================================
+-- SHOW MAIN TAB
+-- ============================================
+
+tabs["Main"].BackgroundColor3 = Color3.fromRGB(48, 48, 68)
+tabs["Main"].TextColor3 = Color3.fromRGB(255, 255, 255)
+pages["Main"].Visible = true
+
+-- ============================================
+-- MOBILE-FRIENDLY TOGGLE
+-- ============================================
+
+local menuVisible = true
+
+connect(toggleButton.MouseButton1Click, function()
+    menuVisible = not menuVisible
+    mainFrame.Visible = menuVisible
+end)
+
+-- ============================================
+-- KEYBOARD TOGGLE
+-- ============================================
+
+connect(UserInputService.InputBegan, function(input, processed)
+    if processed then
+        return
+    end
+
+    if input.KeyCode == Enum.KeyCode.L
+        or input.KeyCode == Enum.KeyCode.Insert then
+
+        menuVisible = not menuVisible
+        mainFrame.Visible = menuVisible
+    end
+end)
+
+-- ============================================
+-- MOBILE DRAG SYSTEM
+-- ============================================
+
+local function makeDraggable(guiObject)
+    local dragging = false
+    local dragStart
+    local startPosition
+
+    connect(guiObject.InputBegan, function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+
+            dragging = true
+            dragStart = input.Position
+            startPosition = guiObject.Position
+
+            local connection
+            connection = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+
+                    if connection then
+                        connection:Disconnect()
+                    end
+                end
+            end)
+        end
+    end)
+
+    connect(guiObject.InputChanged, function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch then
+
+            local moveConnection
+
+            moveConnection = UserInputService.InputChanged:Connect(function(changedInput)
+                if not dragging then
+                    if moveConnection then
+                        moveConnection:Disconnect()
+                    end
+                    return
+                end
+
+                if changedInput == input then
+                    local delta = changedInput.Position - dragStart
+
+                    guiObject.Position = UDim2.new(
+                        startPosition.X.Scale,
+                        startPosition.X.Offset + delta.X,
+                        startPosition.Y.Scale,
+                        startPosition.Y.Offset + delta.Y
+                    )
+                end
+            end)
+
+            table.insert(connections, moveConnection)
+        end
+    end)
 end
 
-toggleMenuBtn.MouseButton1Click:Connect(toggleMenu)
+makeDraggable(mainFrame)
+makeDraggable(toggleButton)
 
--- Keybind toggle ('L' key o kaya 'Insert') para magbukas/magsara
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if not gameProcessed then
-		if input.KeyCode == Enum.KeyCode.L or input.KeyCode == Enum.KeyCode.Insert then
-			toggleMenu()
-		end
-	end
-end)
+-- ============================================
+-- FINAL STATUS
+-- ============================================
+
+print("[LEE HUB] Loaded successfully.")
+print("[LEE HUB] Fast Prompt: OFF")
+print("[LEE HUB] GUI: READY")
+print("[LEE HUB] Mobile controls: READY")
